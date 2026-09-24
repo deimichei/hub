@@ -1,0 +1,225 @@
+{% extends "confronto/base.html" %}
+{% load static %}
+{% block titolo %}Confronto giacenze – risultati{% endblock %}
+
+{% block testa %}
+<style>
+  .testata { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  .giro { background: var(--sfondo-tenue); border-radius: 8px; padding: .8rem 1rem; margin-top: 1rem; font-size: .9rem; }
+  .giro table { width: auto; font-size: .85rem; }
+  .giro td, .giro th { border: 0; padding: .1rem .8rem .1rem 0; background: none; }
+  .schede { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .8rem; margin-top: 1.2rem; }
+  .scheda { border: 1px solid var(--bordo); border-radius: 8px; padding: .8rem 1rem; }
+  .scheda .valore { font-size: 1.6rem; font-weight: 700; }
+  .scheda .cosa { color: var(--tenue); font-size: .85rem; }
+  .grafici { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem; }
+  @media (max-width: 800px) { .grafici { grid-template-columns: 1fr; } }
+  .riquadro { border: 1px solid var(--bordo); border-radius: 8px; padding: 1rem; }
+  .comandi { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: .8rem; }
+  .interruttore button { border: 1px solid #1f6fb2; background: #fff; color: #1f6fb2; padding: .4rem .9rem; cursor: pointer; }
+  .interruttore button:first-child { border-radius: 6px 0 0 6px; }
+  .interruttore button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .interruttore button.attivo { background: #1f6fb2; color: #fff; }
+  .legenda { margin-left: auto; font-size: .85rem; }
+  details.articolo { border: 1px solid var(--bordo); border-radius: 8px; margin-bottom: .4rem; }
+  details.articolo > summary { cursor: pointer; padding: .55rem .8rem; display: grid;
+      grid-template-columns: 1.2rem 5rem 1fr 7rem 9rem 8rem; gap: .6rem; align-items: center; list-style: none; }
+  details.articolo > summary::-webkit-details-marker { display: none; }
+  details.articolo > summary::before { content: "▸"; color: var(--tenue); }
+  details.articolo[open] > summary::before { content: "▾"; }
+  details.articolo[open] > summary { border-bottom: 1px solid var(--bordo); background: var(--sfondo-tenue); }
+  details.articolo table { margin: .3rem 0 .6rem; }
+  .intestazione-articoli { display: grid; grid-template-columns: 1.2rem 5rem 1fr 7rem 9rem 8rem; gap: .6rem;
+      padding: 0 .8rem .3rem; font-size: .8rem; color: var(--tenue); }
+  .num { text-align: right; }
+  .avviso { background: #fff4d6; color: #7a5a00; border-radius: 4px; padding: .05rem .4rem; font-size: .75rem; margin-left: .4rem; }
+  .nascosto-allineati .allineato { display: none; }
+  details.lista { margin-top: .8rem; }
+  details.lista summary { cursor: pointer; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block contenuto %}
+<div class="testata">
+  <div>
+    <h1>Confronto giacenze Zoho / 3PL</h1>
+    <span class="tenue">Ultimo confronto: {{ d.giro.eseguito_il|date:"d/m/Y H:i" }} · eseguito da {{ d.giro.utente }}</span>
+  </div>
+  <a class="pulsante" href="{% url 'confronto:nuovo' %}">Nuovo confronto</a>
+</div>
+
+<details class="giro">
+  <summary>File usati in questo confronto</summary>
+  <table>
+    <tr><th class="s">Documento</th><th class="s">File</th><th>Righe caricate</th></tr>
+    {% for chiave, nome in d.giro.file.items %}
+      <tr><td class="s">{{ chiave }}</td><td class="s">{{ nome }}</td><td>{% for k, n in d.giro.righe.items %}{% if k == chiave %}{{ n|floatformat:"0g" }}{% endif %}{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+
+<div class="schede">
+  <div class="scheda"><div class="valore">{{ d.totali.lotti }}</div><div class="cosa">lotti confrontati</div></div>
+  <div class="scheda"><div class="valore">{{ d.totali.con_differenza }}</div><div class="cosa">lotti con differenza</div></div>
+  <div class="scheda"><div class="valore">{{ d.totali.articoli_con_differenza }}</div><div class="cosa">articoli con differenza</div></div>
+  <div class="scheda"><div class="valore piu">▲ {{ d.totali.zoho_in_piu|floatformat:"0g" }}</div><div class="cosa">pezzi che Zoho ha in più</div></div>
+  <div class="scheda"><div class="valore meno">▼ {{ d.totali.tpl_in_piu|floatformat:"0g" }}</div><div class="cosa">pezzi che il 3PL ha in più</div></div>
+</div>
+
+<h2>Riepilogo per categoria</h2>
+<table>
+  <tr><th class="s">Categoria</th><th>Lotti</th><th>Zoho ha in più</th><th>Il 3PL ha in più</th><th class="s">Significato</th></tr>
+  {% for r in d.riepilogo %}
+    <tr>
+      <td class="s"><span class="badge" style="background: {{ r.cat.colore }}">{{ r.cat.etichetta }}</span></td>
+      <td>{{ r.righe }}</td>
+      <td>{% if r.zoho_in_piu %}<span class="piu">▲ {{ r.zoho_in_piu|floatformat:"-2g" }}</span>{% else %}<span class="zero">–</span>{% endif %}</td>
+      <td>{% if r.tpl_in_piu %}<span class="meno">▼ {{ r.tpl_in_piu|floatformat:"-2g" }}</span>{% else %}<span class="zero">–</span>{% endif %}</td>
+      <td class="s tenue">{{ r.cat.spiegazione }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+<h2>Grafici</h2>
+<div class="grafici">
+  <div class="riquadro"><strong>Lotti per categoria</strong><canvas id="grafico-categorie" height="220"></canvas></div>
+  <div class="riquadro"><strong>I 10 lotti con la differenza più grande</strong><canvas id="grafico-top" height="220"></canvas></div>
+</div>
+
+<h2>Dettaglio</h2>
+<div class="comandi">
+  <div class="interruttore">
+    <button type="button" class="attivo" data-vista="articoli">Per articolo</button><button type="button" data-vista="lotti">Per lotto</button>
+  </div>
+  <label><input type="checkbox" id="mostra-allineati"> mostra anche gli allineati</label>
+  <span class="legenda"><span class="piu">▲</span> Zoho ha di più · <span class="meno">▼</span> il 3PL ha di più</span>
+</div>
+
+<div id="dettaglio" class="nascosto-allineati">
+
+  {# ---------- vista PER ARTICOLO: ordinata per il delta piu' grande tra i lotti ---------- #}
+  <div id="vista-articoli">
+    <div class="intestazione-articoli">
+      <span></span><span>SKU</span><span>Articolo</span><span class="num">Delta max</span><span class="num">Lotti con differenza</span><span class="num">Netto</span>
+    </div>
+    {% for a in d.articoli %}
+      <details class="articolo{% if a.tutto_allineato %} allineato{% endif %}">
+        <summary>
+          <strong>{{ a.sku }}</strong>
+          <span>{{ a.nome|truncatechars:60 }}{% if a.lotti_scambiati %}<span class="avviso" title="Il totale dell'articolo torna, ma le quantità sono su lotti diversi">lotti scambiati?</span>{% endif %}</span>
+          <span class="num">{% include "confronto/_delta.html" with v=a.delta_max a=a.delta_max_abs %}</span>
+          <span class="num">{{ a.n_con_differenza }} su {{ a.lotti|length }}</span>
+          <span class="num">{% include "confronto/_delta.html" with v=a.netto a=a.netto_abs %}</span>
+        </summary>
+        <table>
+          <tr><th class="s">Lotto</th><th>Zoho</th><th>Pacchi aperti</th><th>Zoho + pacchi</th><th>3PL</th><th>di cui bloccata</th><th>Differenza</th><th class="s">Categoria</th><th class="s">Nota</th></tr>
+          {% for r in a.lotti %}
+            <tr{% if not r.con_differenza %} class="allineato"{% endif %}>
+              <td class="s">{{ r.lot }}</td>
+              <td>{{ r.qty_zoho_onhand|floatformat:"-2g" }}</td><td>{{ r.qty_open_packages|floatformat:"-2g" }}</td>
+              <td>{{ r.qty_comparabile|floatformat:"-2g" }}</td><td>{{ r.qty_3pl|floatformat:"-2g" }}</td>
+              <td>{{ r.qty_bloccata|floatformat:"-2g" }}</td>
+              <td>{% include "confronto/_delta.html" with v=r.delta a=r.delta_abs %}</td>
+              <td class="s"><span class="badge" style="background: {{ r.cat.colore }}">{{ r.cat.etichetta }}</span></td>
+              <td class="s">{{ r.nota|default:"" }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      </details>
+    {% endfor %}
+  </div>
+
+  {# ---------- vista PER LOTTO: tabella piatta ordinata per |delta| ---------- #}
+  <div id="vista-lotti" hidden>
+    <table>
+      <tr><th class="s">SKU</th><th class="s">Articolo</th><th class="s">Lotto</th><th>Zoho</th><th>Pacchi aperti</th><th>Zoho + pacchi</th><th>3PL</th><th>di cui bloccata</th><th>Differenza</th><th class="s">Categoria</th><th class="s">Nota</th></tr>
+      {% for r in d.lotti %}
+        <tr{% if not r.con_differenza %} class="allineato"{% endif %}>
+          <td class="s"><strong>{{ r.sku }}</strong></td><td class="s">{{ r.nome|truncatechars:40 }}</td><td class="s">{{ r.lot }}</td>
+          <td>{{ r.qty_zoho_onhand|floatformat:"-2g" }}</td><td>{{ r.qty_open_packages|floatformat:"-2g" }}</td>
+          <td>{{ r.qty_comparabile|floatformat:"-2g" }}</td><td>{{ r.qty_3pl|floatformat:"-2g" }}</td>
+          <td>{{ r.qty_bloccata|floatformat:"-2g" }}</td>
+          <td>{% include "confronto/_delta.html" with v=r.delta a=r.delta_abs %}</td>
+          <td class="s"><span class="badge" style="background: {{ r.cat.colore }}">{{ r.cat.etichetta }}</span></td>
+          <td class="s">{{ r.nota|default:"" }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<h2>Liste a parte</h2>
+<details class="lista">
+  <summary>SKU dismessi, fuori dal confronto ({{ d.dismessi|length }})</summary>
+  <table>
+    <tr><th class="s">SKU</th><th class="s">Lotto</th><th>Zoho + pacchi</th><th>3PL</th><th>Differenza</th><th class="s">Motivo</th></tr>
+    {% for r in d.dismessi %}
+      <tr><td class="s">{{ r.sku }}</td><td class="s">{{ r.lot }}</td><td>{{ r.qty_comparabile|floatformat:"-2g" }}</td><td>{{ r.qty_3pl|floatformat:"-2g" }}</td><td>{{ r.delta|floatformat:"-2g" }}</td><td class="s">{{ r.motivo }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+<details class="lista">
+  <summary>Pacchi aperti di altri magazzini ({{ d.pacchi_non_als|length }})</summary>
+  <table>
+    <tr><th class="s">Ordine</th><th class="s">SKU</th><th class="s">Lotto</th><th>Quantità</th></tr>
+    {% for r in d.pacchi_non_als %}
+      <tr><td class="s">{{ r.so_number }}</td><td class="s">{{ r.sku }}</td><td class="s">{{ r.lot }}</td><td>{{ r.qty_open|floatformat:"-2g" }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+<details class="lista">
+  <summary>Casi di pulizia visti per la prima volta ({{ d.casi_nuovi|length }})</summary>
+  <table>
+    <tr><th class="s">Documento</th><th class="s">Campo</th><th class="s">SKU</th><th class="s">Valore nel file</th><th class="s">Valore pulito</th></tr>
+    {% for r in d.casi_nuovi %}
+      <tr><td class="s">{{ r.documento }}</td><td class="s">{{ r.campo }}</td><td class="s">{{ r.sku }}</td><td class="s">{{ r.valore_nel_file }}</td><td class="s">{{ r.valore_pulito }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+
+{{ d.grafici|json_script:"dati-grafici" }}
+{% endblock %}
+
+{% block script %}
+{# Chart.js incluso nel progetto (static/confronto): nessuna dipendenza da siti esterni #}
+<script src="{% static 'confronto/chart.umd.js' %}"></script>
+<script>
+  // --- interruttore Per articolo / Per lotto ---
+  document.querySelectorAll('.interruttore button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.interruttore button').forEach(function (x) { x.classList.toggle('attivo', x === b); });
+      document.getElementById('vista-articoli').hidden = b.dataset.vista !== 'articoli';
+      document.getElementById('vista-lotti').hidden = b.dataset.vista !== 'lotti';
+    });
+  });
+  // --- mostra / nascondi gli allineati ---
+  document.getElementById('mostra-allineati').addEventListener('change', function (e) {
+    document.getElementById('dettaglio').classList.toggle('nascosto-allineati', !e.target.checked);
+  });
+
+  // --- grafici ---
+  var g = JSON.parse(document.getElementById('dati-grafici').textContent);
+  var numeroIt = function (v) { return Math.abs(v).toLocaleString('it-IT'); };
+
+  new Chart(document.getElementById('grafico-categorie'), {
+    type: 'bar',
+    // etichette lunghe su due righe (es. "Spiegati da / pacchi aperti")
+    data: { labels: g.categorie.etichette.map(function (t) { var p = t.split(' '); return p.length > 2 ? [p.slice(0, 2).join(' '), p.slice(2).join(' ')] : t; }),
+            datasets: [{ data: g.categorie.righe, backgroundColor: g.categorie.colori }] },
+    options: { plugins: { legend: { display: false } },
+               scales: { x: { ticks: { maxRotation: 0 } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+
+  new Chart(document.getElementById('grafico-top'), {
+    type: 'bar',
+    data: { labels: g.top_lotti.map(function (x) { return x.etichetta; }),
+            datasets: [{ data: g.top_lotti.map(function (x) { return x.delta; }),
+                         backgroundColor: g.top_lotti.map(function (x) { return x.delta > 0 ? '#d35400' : '#2471a3'; }) }] },
+    options: { indexAxis: 'y',
+               plugins: { legend: { display: false },
+                          tooltip: { callbacks: { label: function (c) {
+                              return (c.raw > 0 ? '▲ Zoho ha di più: ' : '▼ Il 3PL ha di più: ') + numeroIt(c.raw); } } } },
+               scales: { x: { ticks: { callback: function (v) { return numeroIt(v); } } } } }
+  });
+</script>
+{% endblock %}

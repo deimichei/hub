@@ -5,5 +5,6 @@ from . import views
 app_name = 'confronto'
 
 urlpatterns = [
-    path('', views.pagina, name='pagina'),
+    path('', views.risultati, name='risultati'),
+    path('nuovo/', views.nuovo, name='nuovo'),
 ]

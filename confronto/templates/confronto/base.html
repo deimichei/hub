@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titolo %}Confronto giacenze{% endblock %}</title>
+  <style>
+    :root {
+      --testo: #222; --tenue: #666; --bordo: #ddd; --sfondo-tenue: #f5f6f7;
+      --piu: #d35400;   /* Zoho ha di piu' */
+      --meno: #2471a3;  /* il 3PL ha di piu' */
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; color: var(--testo); background: #fff; }
+    header { background: #1f2d3a; color: #fff; padding: .8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    header a { color: #cfe3f5; }
+    main { max-width: 1150px; margin: 1.5rem auto; padding: 0 1rem; }
+    h1 { margin: 0 0 .3rem; font-size: 1.6rem; }
+    h2 { margin: 2rem 0 .6rem; font-size: 1.2rem; }
+    .tenue { color: var(--tenue); }
+    .pulsante { display: inline-block; background: #1f6fb2; color: #fff; border: 0; border-radius: 6px;
+                padding: .6rem 1.3rem; font-size: 1rem; cursor: pointer; text-decoration: none; }
+    .pulsante:hover { background: #185a91; }
+    .pulsante[disabled] { background: #9bb4c9; cursor: wait; }
+    .pulsante.secondario { background: #e7ebef; color: var(--testo); }
+    .errore { background: #fde8e8; border: 1px solid #e0a0a0; padding: .8rem 1rem; border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+    th, td { border-bottom: 1px solid var(--bordo); padding: .35rem .6rem; text-align: right; white-space: nowrap; }
+    th { background: var(--sfondo-tenue); font-weight: 600; }
+    .s { text-align: left; }
+    .piu  { color: var(--piu);  font-weight: 600; }
+    .meno { color: var(--meno); font-weight: 600; }
+    .zero { color: #999; }
+    .badge { display: inline-block; padding: .1rem .5rem; border-radius: 999px; color: #fff; font-size: .8rem; }
+  </style>
+  {% block testa %}{% endblock %}
+</head>
+<body>
+  <header>
+    <strong>Hub · Confronto giacenze Zoho / 3PL</strong>
+    <form method="post" action="/admin/logout/" style="margin:0">
+      {% csrf_token %}{# da Django 5 l'uscita deve essere un POST, non un semplice link #}
+      {{ user.get_username }} · <button type="submit" style="background:none;border:0;color:#cfe3f5;text-decoration:underline;cursor:pointer;font:inherit;padding:0">esci</button>
+    </form>
+  </header>
+  <main>
+    {% block contenuto %}{% endblock %}
+  </main>
+  {% block script %}{% endblock %}
+</body>
+</html>

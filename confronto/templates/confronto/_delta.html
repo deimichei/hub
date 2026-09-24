@@ -1,0 +1,4 @@
+{% comment %}
+Differenza con freccia e colore. Parametri: v = valore con segno, a = valore assoluto.
+  ▲ = Zoho ha di piu'   ▼ = il 3PL ha di piu'
+{% endcomment %}{% if v > 0.01 %}<span class="piu" title="Zoho ha di più">▲ {{ a|floatformat:"-2g" }}</span>{% elif v < -0.01 %}<span class="meno" title="Il 3PL ha di più">▼ {{ a|floatformat:"-2g" }}</span>{% else %}<span class="zero">0</span>{% endif %}
