@@ -32,7 +32,30 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+def _lista(nome, predefinito=''):
+    """Variabile d'ambiente con valori separati da virgola -> lista."""
+    return [x.strip() for x in os.environ.get(nome, predefinito).split(',') if x.strip()]
+
+
+# Indirizzi da cui Django accetta richieste. Sul PC bastano localhost;
+# su un server si aggiungono con DJANGO_ALLOWED_HOSTS (es. hub.adeimichei.com)
+ALLOWED_HOSTS = _lista('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+# Indirizzi https fidati per i moduli (upload): es. https://hub.adeimichei.com
+CSRF_TRUSTED_ORIGINS = _lista('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+# Azure App Service imposta da solo WEBSITE_HOSTNAME (es. mia-app.azurewebsites.net):
+# lo aggiungiamo automaticamente, cosi' su Azure non serve configurarlo a mano
+if os.environ.get('WEBSITE_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['WEBSITE_HOSTNAME'])
+    CSRF_TRUSTED_ORIGINS.append('https://' + os.environ['WEBSITE_HOSTNAME'])
+
+# In produzione (DEBUG spento) il server sta dietro un proxy HTTPS
+# (Azure, Caddy...): cookie solo su https e riconoscimento dell'https del proxy
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -50,6 +73,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise serve i file statici (Chart.js, stile dell'admin) anche con
+    # DEBUG spento, senza bisogno di un server web separato
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -92,6 +118,8 @@ DATABASES = {
         'PASSWORD': os.environ['DB_PASSWORD'],
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        # connessione cifrata: "prefer" sul PC, "require" su Azure (obbligatorio)
+        'OPTIONS': {'sslmode': os.environ.get('DB_SSLMODE', 'prefer')},
     }
 }
 
@@ -131,6 +159,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# In produzione "collectstatic" raccoglie qui tutti i file statici,
+# che WhiteNoise poi serve compressi e con nomi versionati
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 
 # Email
