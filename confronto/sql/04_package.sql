@@ -89,8 +89,8 @@ WHERE lot ~ '\s+MAN\s+';
 
 -- 'g' = tutte le occorrenze, non solo la prima
 UPDATE import_package_clean
-SET lot = regexp_replace(lot, '[-_]', '', 'g')
-WHERE lot ~ '[-_]';
+SET lot = regexp_replace(lot, '[-_\u2013\u2014]', '', 'g')
+WHERE lot ~ '[-_\u2013\u2014]';
 
 -- ------------------------------------------------------------
 -- Passo 6: CLEANING_LOG

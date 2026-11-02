@@ -87,8 +87,8 @@ WHERE lot ~ '\s+MAN\s+';
 
 -- Passo 5: LOT senza "-" e "_"  ('g' = tutte le occorrenze, non solo la prima)
 UPDATE import_batch_clean
-SET lot = regexp_replace(lot, '[-_]', '', 'g')
-WHERE lot ~ '[-_]';
+SET lot = regexp_replace(lot, '[-_\u2013\u2014]', '', 'g')
+WHERE lot ~ '[-_\u2013\u2014]';
 
 -- Passo 6: scarta righe senza SKU/LOT o righe di totale
 DELETE FROM import_batch_clean

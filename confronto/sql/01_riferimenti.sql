@@ -77,8 +77,8 @@ WHERE batch ~ '\s+MAN\s+';
 
 -- 'g' = tutte le occorrenze, non solo la prima
 UPDATE ref_batch_notes
-SET batch = regexp_replace(batch, '[-_]', '', 'g')
-WHERE batch ~ '[-_]';
+SET batch = regexp_replace(batch, '[-_\u2013\u2014]', '', 'g')
+WHERE batch ~ '[-_\u2013\u2014]';
 
 -- ------------------------------------------------------------
 -- Passo C: toglie i doppioni tenendo l'ULTIMA riga del file
